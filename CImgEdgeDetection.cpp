@@ -9,19 +9,22 @@ using namespace cimg_library;
 const char* PATH = "./img";
 const char* FILENAME = "caixa.jpg";
 
-const CImg<char> SOBEL_KERNEL_X(3,3,1,1,{-1,0,1,
-										 -2,0,2,
-										 -1,0,1},false);
+const CImg<char> SOBEL_KERNEL_X(3,3,1,1,{
+		-1,0,1,
+		-2,0,2,
+		-1,0,1},false);
 
-const CImg<char> SOBEL_KERNEL_Y(3,3,1,1,{ 1 , 2 , 1,
-										  0 , 0 , 0,
-										 -1 ,-2 ,-1},false);
+const CImg<char> SOBEL_KERNEL_Y(3,3,1,1,{
+		 1 , 2 , 1,
+		 0 , 0 , 0,
+		-1 ,-2 ,-1},false);
 
-const CImg<double> GAUSSIAN_KERNEL_AUX(5,5,1,1,{2 ,  4 ,  5 ,  4 , 2,
-												4 ,  9 , 12 ,  9 , 4,
-												5 , 12 , 15 , 12 , 5,
-												4 ,  9 , 12 ,  9 , 4,
-												2 ,  4 ,  5 ,  4 , 2}, false);
+const CImg<double> GAUSSIAN_KERNEL_AUX(5,5,1,1,{
+		2 ,  4 ,  5 ,  4 , 2,
+		4 ,  9 , 12 ,  9 , 4,
+		5 , 12 , 15 , 12 , 5,
+		4 ,  9 , 12 ,  9 , 4,
+		2 ,  4 ,  5 ,  4 , 2}, false);
 
 const CImg<double> GAUSSIAN_KERNEL = GAUSSIAN_KERNEL_AUX / 159;
 
@@ -103,7 +106,7 @@ CImg<double> canny(CImg<double>& grayscaleImg)
 			double highLimit2 = angleSum(ANGLE[i]+180,  SECTION);
 
 			if ((angle > lowLimit1 && angle <= highLimit1) ||
-				(angle > lowLimit2 && angle <= highLimit2))
+					(angle > lowLimit2 && angle <= highLimit2))
 			{
 				angle = ANGLE[i];
 				break;
