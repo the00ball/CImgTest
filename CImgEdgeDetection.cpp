@@ -9,9 +9,6 @@
 using namespace cimg_library;
 using namespace std;
 
-const char* PATH = "./img";
-const char* FILENAME = "caixa.jpg";
-
 const CImg<char> SOBEL_KERNEL_X(3,3,1,1,{
 		-1,0,1,
 		-2,0,2,
@@ -48,23 +45,6 @@ inline double angleSum(double angle, const double value)
 	return angle;
 }
 
-inline char* getFileName(const char* path, const char* filename)
-{
-	if (!path || !filename)
-		return NULL;
-
-	char fullpath[PATH_MAX];
-
-	realpath(path, fullpath);
-
-	char* fullFileName = (char*) calloc(strlen(fullpath) + strlen(filename) + 1, sizeof(char));
-
-	if (fullFileName)
-		sprintf(fullFileName, "%s/%s", fullpath, filename);
-
-	return fullFileName;
-}
-
 /**
  * Sobel edge detection
  *
@@ -89,7 +69,7 @@ CImg<double> sobel(CImg<double>& grayscaleImg)
 inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
 inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
 
-CImg<double> canny(CImg<double>& grayscaleImg)
+CImg<double> canny(CImg<double>& grayscaleImg, const double lowThreshold, const double highThreshold)
 {
 	CImg<double> gaussian  = grayscaleImg.get_convolve(GAUSSIAN_KERNEL);
 
@@ -114,8 +94,7 @@ CImg<double> canny(CImg<double>& grayscaleImg)
 			double highLimit1 = angleSum(ANGLE[i]    ,  SECTOR);
 			double highLimit2 = angleSum(ANGLE[i]+180,  SECTOR);
 
-			if ((angle > lowLimit1 && angle <= highLimit1) ||
-                (angle > lowLimit2 && angle <= highLimit2))
+			if ((angle > lowLimit1 && angle <= highLimit1) || (angle > lowLimit2 && angle <= highLimit2))
 			{
 				angle = ANGLE[i];
 				break;
@@ -124,9 +103,6 @@ CImg<double> canny(CImg<double>& grayscaleImg)
 
 		Atan2(x, y) = angle;
 	}
-
-	const double highThreshold = 140;
-	const double lowThreshold  = 25;
 
 	CImg_3x3(I,double);
 	cimg_for3x3(G,x,y,0,0,I,double)
@@ -173,7 +149,6 @@ inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, d
 		pair<int,int> point = edges.back();
 		edges.pop_back();
 		checkNeighborhood(edges, G, edgeTrace, point.first, point.second, threshold);
-
 	}
 }
 
@@ -230,34 +205,46 @@ inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg
 
 int main(int argc, char **argv)
 {
-	CImgList<double> displayList;
-
-	if (char* filename = getFileName(PATH, FILENAME))
-	{
-		try
-		{
-			CImg<double> img(filename);
-			CImg<double> grayImg = img.get_norm().normalize(0,255);
-			displayList.push_back((img,sobel(grayImg),canny(grayImg)));
-		}
-		catch(exception &ex)
-		{
-			std::cout << "Sobel error:" << ex.what();
-		}
-		free(filename);
-	}
+	cimg_usage("Retrieve command line arguments");
+	const char* filename       = cimg_option("-i","","Input image file");
+	const char  type           = cimg_option("-t",'C',"Algorithm type: (S)obel or (C)anny");
+	const double lowThreshold  = cimg_option("-lt",15.0,"Low threshold");
+	const double highThreshold = cimg_option("-ht",60.0,"High threshold");
 
 	try
 	{
-		CImg<double> img(640,480);
-		CImg<double> grayImg = img.load_camera(0,0,false,640,480).get_norm().normalize(0,255);
-		displayList.push_back((img,sobel(grayImg),canny(grayImg)));
+		CImgList<double> displayList;
+		CImg<double> image;
+		CImg<double> grayscale;
+		CImg<double> edge;
+
+		if (strlen(filename))
+		{
+			CImg<double> input(filename);
+			image = input;
+		}
+		else
+		{
+			image.resize(640,480);
+			image.load_camera(0,0,false,640,480);
+		}
+
+		grayscale = image.get_norm().normalize(0,255);
+
+		switch(type)
+		{
+		case 'S': edge = sobel(grayscale); break;
+		case 'C': edge = canny(grayscale, lowThreshold, highThreshold); break;
+		default: edge = canny(grayscale, lowThreshold, highThreshold); break;
+		}
+
+		displayList.push_back((image,edge));
+		displayList.display();
 	}
 	catch(exception &ex)
 	{
-		std::cout << "Canny error:" << ex.what();
+		std::cout << "Error:" << ex.what();
 	}
-	displayList.display();
 
 	return 0;
 }
