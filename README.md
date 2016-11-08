@@ -55,5 +55,7 @@ edgedetection: Retrieve command line arguments (Nov  8 2016, 10:16:06)
     -t               C                        Algorithm type: (S)obel or (C)anny
     -lt              15                       Low threshold
     -ht              60                       High threshold
+    -s               1.4                      Sigma
+
     
 
