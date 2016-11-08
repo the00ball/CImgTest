@@ -55,35 +55,49 @@ CImg<double> sobel(CImg<double>& grayscaleImg)
  * Canny edge detection
  *
  * Source: https://en.wikipedia.org/wiki/Canny_edge_detector
+ *
+ * (1) Apply Gaussian filter to smooth the image in order to remove the noise
+ * (2) Find the intensity gradients of the image
+ * (3) Apply non-maximum suppression to get rid of spurious response to edge detection
+ * (4) Apply double threshold to determine potential edges
+ * (5) Track edge by hysteresis: Finalize the detection of edges by suppressing all the other edges that are weak and not connected to strong edges.
+ *
  */
 
-inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
-inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
+inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, const int x, const int y, double threshold);
+inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, const int x, const int y, double threshold);
 
 CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double lowThreshold, const double highThreshold)
 {
-	CImg<double> gaussian  = grayscaleImg.get_blur(sigma, true, true);
+	// (1) Apply Gaussian filter to smooth the image in order to remove the noise
+
+	CImg<double> gaussian = grayscaleImg.get_blur(sigma, true, true);
+
+	// (2) Find the intensity gradients of the image
 
 	CImg<double> Gx = gaussian.get_convolve(SOBEL_KERNEL_X);
 	CImg<double> Gy = gaussian.get_convolve(SOBEL_KERNEL_Y);
 	CImg<double> G  = ( Gx.get_sqr().normalize(0,255) + Gy.get_sqr().normalize(0,255) ).cut(0, 255).sqrt().normalize(0, 255);
 	CImg<double> Atan2 = Gy.get_atan2(Gx);
 
-	// Non-maximum suppression
+	// (3) Apply non-maximum suppression to get rid of spurious response to edge detection
 
 	const double SECTOR = 22.5;
 	const double ANGLE[4] = {0, 45, 90, 135};
 
-	cimg_forXY(Atan2,x,y)
+	CImg_3x3(I,double);
+	cimg_for3x3(G,x,y,0,0,I,double)
 	{
+		double g = G(x,y);
+
 		double angle = toDegrees(Atan2(x, y));
 
 		for (int i = 0; i < 4; i++)
 		{
-			double lowLimit1  = angleSum(ANGLE[i]    , -SECTOR);
-			double lowLimit2  = angleSum(ANGLE[i]+180, -SECTOR);
-			double highLimit1 = angleSum(ANGLE[i]    ,  SECTOR);
-			double highLimit2 = angleSum(ANGLE[i]+180,  SECTOR);
+			const double lowLimit1  = angleSum(ANGLE[i]    , -SECTOR);
+			const double lowLimit2  = angleSum(ANGLE[i]+180, -SECTOR);
+			const double highLimit1 = angleSum(ANGLE[i]    ,  SECTOR);
+			const double highLimit2 = angleSum(ANGLE[i]+180,  SECTOR);
 
 			if ((angle > lowLimit1 && angle <= highLimit1) || (angle > lowLimit2 && angle <= highLimit2))
 			{
@@ -92,28 +106,19 @@ CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double l
 			}
 		}
 
-		Atan2(x, y) = angle;
-	}
-
-	CImg_3x3(I,double);
-	cimg_for3x3(G,x,y,0,0,I,double)
-	{
-		double g = G(x,y);
-		double angle = Atan2(x,y);
-
-		if (angle == 0)
-			g = (g < Ipc || g < Inc) ? SUPPRESS : g;
-		else if (angle == 45)
-			g = (g < Inp || g < Ipn) ? SUPPRESS : g;
-		else if (angle == 90)
-			g = (g < Icp || g < Icn) ? SUPPRESS : g;
-		else // angle == 135
-			g = (g < Ipp || g < Inn) ? SUPPRESS : g;
+		switch(static_cast<int>(angle))
+		{
+			case   0: g = (g < Ipc || g < Inc) ? SUPPRESS : g; break;
+			case  45: g = (g < Inp || g < Ipn) ? SUPPRESS : g; break;
+			case  90: g = (g < Icp || g < Icn) ? SUPPRESS : g; break;
+			case 135: g = (g < Ipp || g < Inn) ? SUPPRESS : g; break;
+		}
 
 		G(x, y) = g;
 	}
 
-	// Edge tracking by hysteresis
+	// (4) Apply double threshold to determine potential edges
+	// (5) Track edge by hysteresis: Finalize the detection of edges by suppressing all the other edges that are weak and not connected to strong edges.
 
 	CImg<double> edgeTrace = G.get_fill(0);
 
@@ -129,7 +134,7 @@ CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double l
 	return edgeTrace;
 }
 
-inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold)
+inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, const int x, const int y, double threshold)
 {
 	list<pair<int, int>> edges;
 
@@ -143,8 +148,10 @@ inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, d
 	}
 }
 
-inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold)
+inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, const int x, const int y, double threshold)
 {
+	// 8-connected pixels
+
 	if (x > 0 && y > 0 && edgeTrace(x-1, y-1) != EDGE && G(x-1,y-1) >= threshold)
 	{
 		edgeTrace(x-1, y-1) = EDGE;
