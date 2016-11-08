@@ -19,15 +19,6 @@ const CImg<char> SOBEL_KERNEL_Y(3,3,1,1,{
 		 0 , 0 , 0,
 		-1 ,-2 ,-1},false);
 
-const CImg<double> GAUSSIAN_KERNEL_AUX(5,5,1,1,{
-		2 ,  4 ,  5 ,  4 , 2,
-		4 ,  9 , 12 ,  9 , 4,
-		5 , 12 , 15 , 12 , 5,
-		4 ,  9 , 12 ,  9 , 4,
-		2 ,  4 ,  5 ,  4 , 2}, false);
-
-const CImg<double> GAUSSIAN_KERNEL = GAUSSIAN_KERNEL_AUX / 159;
-
 const double EDGE = 255;
 const double SUPPRESS = 0;
 
@@ -69,9 +60,9 @@ CImg<double> sobel(CImg<double>& grayscaleImg)
 inline void hysteresis(CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
 inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg<double> &edgeTrace, int x, int y, double threshold);
 
-CImg<double> canny(CImg<double>& grayscaleImg, const double lowThreshold, const double highThreshold)
+CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double lowThreshold, const double highThreshold)
 {
-	CImg<double> gaussian  = grayscaleImg.get_convolve(GAUSSIAN_KERNEL);
+	CImg<double> gaussian  = grayscaleImg.get_blur(sigma, true, true);
 
 	CImg<double> Gx = gaussian.get_convolve(SOBEL_KERNEL_X);
 	CImg<double> Gy = gaussian.get_convolve(SOBEL_KERNEL_Y);
@@ -206,10 +197,11 @@ inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg
 int main(int argc, char **argv)
 {
 	cimg_usage("Retrieve command line arguments");
-	const char* filename       = cimg_option("-i","","Input image file");
-	const char  type           = cimg_option("-t",'C',"Algorithm type: (S)obel or (C)anny");
+	const char*  filename      = cimg_option("-i","","Input image file");
+	const char   type          = cimg_option("-t",'C',"Algorithm type: (S)obel or (C)anny");
 	const double lowThreshold  = cimg_option("-lt",15.0,"Low threshold");
 	const double highThreshold = cimg_option("-ht",60.0,"High threshold");
+	const float  sigma         = cimg_option("-s",1.4f,"Sigma");
 
 	try
 	{
@@ -234,8 +226,8 @@ int main(int argc, char **argv)
 		switch(type)
 		{
 		case 'S': edge = sobel(grayscale); break;
-		case 'C': edge = canny(grayscale, lowThreshold, highThreshold); break;
-		default: edge = canny(grayscale, lowThreshold, highThreshold); break;
+		case 'C':
+		default: edge = canny(grayscale, sigma, lowThreshold, highThreshold); break;
 		}
 
 		displayList.push_back((image,edge));
