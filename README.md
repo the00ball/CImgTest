@@ -1,6 +1,6 @@
 # CImgTest
 
-The CImgTest is a simple project to test the CImg Library. It has just only one .cpp file CImgEdgeDetection.cpp. As the name say, this program applies edge detection over an input source image. To cover more than one edge detection approaches, two diferents techinics are developed:
+The CImgTest is a simple project to test the CImg Library. It has just only one .cpp file CImgEdgeDetection.cpp. As the name says, this program applies edge detection over an input source image. To cover more than one edge detection approaches, two diferents techinics are developed:
 
 * [Sobel](https://en.wikipedia.org/wiki/Sobel_operator)  
 * [Canny](https://en.wikipedia.org/wiki/Canny_edge_detector)
