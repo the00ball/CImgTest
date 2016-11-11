@@ -2,9 +2,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <linux/limits.h>
 #include <list>
 #include <iostream>
+#include <tesseract/baseapi.h>
+#include <leptonica/allheaders.h>
+#include <string>
 
 using namespace cimg_library;
 using namespace std;
@@ -21,6 +23,16 @@ const CImg<char> SOBEL_KERNEL_Y(3,3,1,1,{
 
 const double EDGE = 255;
 const double SUPPRESS = 0;
+const double NON_LABELED = -1;
+
+struct LabelRegion
+{
+	int label = NON_LABELED;
+	int x0 = -1;
+	int y0 = -1;
+	int x1 = -1;
+	int y1 = -1;
+};
 
 inline double toDegrees(const double radians)
 {
@@ -99,7 +111,9 @@ CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double l
 			const double highLimit1 = angleSum(ANGLE[i]    ,  SECTOR);
 			const double highLimit2 = angleSum(ANGLE[i]+180,  SECTOR);
 
-			if ((angle > lowLimit1 && angle <= highLimit1) || (angle > lowLimit2 && angle <= highLimit2))
+			if ((!i && (angle > lowLimit1 || angle <= highLimit1)) ||
+				(angle > lowLimit1 && angle <= highLimit1) ||
+				(angle > lowLimit2 && angle <= highLimit2))
 			{
 				angle = ANGLE[i];
 				break;
@@ -124,7 +138,7 @@ CImg<double> canny(CImg<double>& grayscaleImg, const float sigma, const double l
 
 	cimg_forXY(G,x,y)
 	{
-		if (edgeTrace(x, y) != EDGE && G(x, y) >= highThreshold)
+		if (!edgeTrace(x, y) && G(x, y) >= highThreshold)
 		{
 			edgeTrace(x,y) = EDGE;
 			hysteresis(G, edgeTrace, x, y, lowThreshold);
@@ -152,63 +166,179 @@ inline void checkNeighborhood(list<pair<int, int>> &edges, CImg<double> &G, CImg
 {
 	// 8-connected pixels
 
-	if (x > 0 && y > 0 && edgeTrace(x-1, y-1) != EDGE && G(x-1,y-1) >= threshold)
+	if (x > 0 && y > 0 && !edgeTrace(x-1, y-1) && G(x-1,y-1) >= threshold)
 	{
 		edgeTrace(x-1, y-1) = EDGE;
 		edges.push_back(pair<int,int>(x-1, y-1));
 	}
 
-	if (y > 0 && edgeTrace(x, y-1) != EDGE && G(x, y-1) >= threshold)
+	if (y > 0 && !edgeTrace(x, y-1) && G(x, y-1) >= threshold)
 	{
 		edgeTrace(x, y-1) = EDGE;
 		edges.push_back(pair<int,int>(x, y-1));
 	}
 
-	if (x < G.width()-1 && y > 0 && edgeTrace(x+1, y-1) != EDGE && G(x+1, y-1) >= threshold)
+	if (x < G.width()-1 && y > 0 && !edgeTrace(x+1, y-1) && G(x+1, y-1) >= threshold)
 	{
 		edgeTrace(x+1, y-1) = EDGE;
 		edges.push_back(pair<int,int>(x+1, y-1));
 	}
 
-	if (x < G.width()-1 && edgeTrace(x+1, y) != EDGE && G(x+1, y) > threshold)
+	if (x < G.width()-1 && !edgeTrace(x+1, y) && G(x+1, y) > threshold)
 	{
 		edgeTrace(x+1, y) = EDGE;
 		edges.push_back(pair<int,int>(x+1, y));
 	}
 
-	if (x < G.width()-1 && y < G.height()-1 && edgeTrace(x+1, y+1) != EDGE && G(x+1, y+1) >= threshold)
+	if (x < G.width()-1 && y < G.height()-1 && !edgeTrace(x+1, y+1) && G(x+1, y+1) >= threshold)
 	{
 		edgeTrace(x+1, y+1) = EDGE;
 		edges.push_back(pair<int,int>(x+1, y+1));
 	}
 
-	if (y < G.height()-1 && edgeTrace(x, y+1) != EDGE && G(x, y+1) >= threshold)
+	if (y < G.height()-1 && !edgeTrace(x, y+1) && G(x, y+1) >= threshold)
 	{
 		edgeTrace(x, y+1) = EDGE;
 		edges.push_back(pair<int,int>(x, y+1));
 	}
 
-	if (x > 0 && y < G.height()-1 && edgeTrace(x-1, y+1) != EDGE && G(x-1, y+1) >= threshold)
+	if (x > 0 && y < G.height()-1 && !edgeTrace(x-1, y+1) && G(x-1, y+1) >= threshold)
 	{
 		edgeTrace(x-1, y+1) = EDGE;
 		edges.push_back(pair<int,int>(x-1, y+1));
 	}
 
-	if (x > 0 && edgeTrace(x-1, y) != EDGE && G(x-1, y) >= threshold)
+	if (x > 0 && !edgeTrace(x-1, y) && G(x-1, y) >= threshold)
 	{
 		edgeTrace(x-1, y) = EDGE;
 		edges.push_back(pair<int,int>(x-1, y));
 	}
 }
 
+/*
+ * Labeling using one component at time approach
+ *
+ * Using recursive method
+ */
+
+void innerLabeling(CImg<double> &binaryImg, CImg<double> &labelImg, LabelRegion &region, const int x, const int y, const int currentLabel);
+
+CImg<double> labeling(CImg<double> &binaryImg, list<LabelRegion> &regions)
+{
+	CImg<double> labelImg = binaryImg.get_fill(NON_LABELED);
+	int currentLabel = 0;
+
+	cimg_forXY(binaryImg,x,y)
+	{
+		if (labelImg(x, y) == NON_LABELED && binaryImg(x, y) == EDGE)
+		{
+			LabelRegion region;
+			region.x0 = region.x1 = x;
+			region.y0 = region.y1 = y;
+			region.label = ++currentLabel;
+
+			innerLabeling(binaryImg, labelImg, region, x, y, currentLabel);
+
+			if (region.x1-region.x0 > 0 && region.y1-region.y0 > 0)
+				regions.push_back(region);
+		}
+	}
+
+	return labelImg;
+}
+
+void innerLabeling(CImg<double> &binaryImg, CImg<double> &labelImg, LabelRegion &region, const int x, const int y, const int currentLabel)
+{
+	labelImg(x,y) = currentLabel;
+
+	if (x < region.x0)
+		region.x0 = x;
+	else if (x > region.x1)
+		region.x1 = x;
+
+	if (y < region.y0)
+		region.y0 = y;
+	else if (y > region.y1)
+		region.y1 = y;
+
+	// 8-connected pixels
+
+	if (x > 0 && y > 0 && labelImg(x-1, y-1) == NON_LABELED && binaryImg(x-1,y-1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x-1, y-1, currentLabel);
+
+	if (y > 0 && labelImg(x, y-1) == NON_LABELED && binaryImg(x, y-1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x, y-1, currentLabel);
+
+	if (x < binaryImg.width()-1 && y > 0 && labelImg(x+1, y-1) == NON_LABELED && binaryImg(x+1, y-1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x+1, y-1, currentLabel);
+
+	if (x < binaryImg.width()-1 && labelImg(x+1, y) == NON_LABELED && binaryImg(x+1, y) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x+1, y, currentLabel);
+
+	if (x < binaryImg.width()-1 && y < binaryImg.height()-1 && labelImg(x+1, y+1) == NON_LABELED && binaryImg(x+1, y+1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x+1, y+1, currentLabel);
+
+	if (y < binaryImg.height()-1 && labelImg(x, y+1) == NON_LABELED && binaryImg(x, y+1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x, y+1, currentLabel);
+
+	if (x > 0 && y < binaryImg.height()-1 && labelImg(x-1, y+1) == NON_LABELED && binaryImg(x-1, y+1) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x-1, y+1, currentLabel);
+
+	if (x > 0 && labelImg(x-1, y) == NON_LABELED && binaryImg(x-1, y) == EDGE)
+		innerLabeling(binaryImg, labelImg, region, x-1, y, currentLabel);
+}
+
+bool findButton(const char* filename, list<LabelRegion> regions, const char* buttonName, LabelRegion& buttonRegion)
+{
+	bool buttonFound = false;
+
+	tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
+	// Initialize tesseract-ocr with English, without specifying tessdata path
+	if (api->Init(NULL, "eng"))
+		fprintf(stderr, "Could not initialize tesseract.\n");
+	else
+	{
+		// Open input image with leptonica library
+		Pix *image = pixRead(filename);
+		api->SetImage(image);
+
+		while(!regions.empty())
+		{
+			LabelRegion region = regions.back();
+			regions.pop_back();
+
+			api->SetRectangle(region.x0, region.y0, region.x1-region.x0, region.y1-region.y0);
+
+			// Get OCR result
+			string outText(api->GetUTF8Text());
+
+			std::cout<<"OCR output: "<<outText;
+
+			if (outText.length() > 0 && outText.find(buttonName) != string::npos)
+			{
+				buttonRegion = region;
+				buttonFound = true;
+				break;
+			}
+		}
+
+		// Destroy used object and release memory
+		api->End();
+		pixDestroy(&image);
+	}
+
+	return buttonFound;
+}
+
 int main(int argc, char **argv)
 {
 	cimg_usage("Retrieve command line arguments");
-	const char*  filename      = cimg_option("-i","","Input image file");
+	const char*  filename      = cimg_option("-i","/home/sirineo/Imagens/screenshots/Screenshot_2015-01-07-00-38-33.png","Input image file");
 	const char   type          = cimg_option("-t",'C',"Algorithm type: (S)obel or (C)anny");
 	const double lowThreshold  = cimg_option("-lt",15.0,"Low threshold");
-	const double highThreshold = cimg_option("-ht",60.0,"High threshold");
+	const double highThreshold = cimg_option("-ht",40.0,"High threshold");
 	const float  sigma         = cimg_option("-s",1.4f,"Sigma");
+	const char*  buttonLabel   = cimg_option("-b","","Button label");
 
 	try
 	{
@@ -216,11 +346,14 @@ int main(int argc, char **argv)
 		CImg<double> image;
 		CImg<double> grayscale;
 		CImg<double> edge;
+		CImg<double> label;
 
 		if (strlen(filename))
 		{
 			CImg<double> input(filename);
 			image = input;
+			if (image.width() > 640)
+				image.resize(640, 640*image.height()/image.width());
 		}
 		else
 		{
@@ -232,12 +365,25 @@ int main(int argc, char **argv)
 
 		switch(type)
 		{
-		case 'S': edge = sobel(grayscale); break;
-		case 'C':
-		default: edge = canny(grayscale, sigma, lowThreshold, highThreshold); break;
+			case 'S': edge = sobel(grayscale); break;
+			case 'C':
+			default: edge = canny(grayscale, sigma, lowThreshold, highThreshold); break;
 		}
 
-		displayList.push_back((image,edge));
+		list<LabelRegion> regions;
+
+		label = labeling(edge, regions);
+
+		LabelRegion button;
+		bool found = findButton(filename, regions, buttonLabel, button);
+
+		if (found)
+		{
+			const double color[] = {0,255,0};
+			image.draw_rectangle(button.x0,button.y0,button.x1,button.y1,color,0.2f);
+		}
+
+		displayList.push_back(image);
 		displayList.display();
 	}
 	catch(exception &ex)

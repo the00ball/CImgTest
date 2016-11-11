@@ -32,6 +32,7 @@
 								<option id="gnu.cpp.compiler.option.preprocessor.def.576026059" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="cimg_display=1"/>
 									<listOptionValue builtIn="false" value="cimg_use_jpeg"/>
+									<listOptionValue builtIn="false" value="cimg_use_png"/>
 									<listOptionValue builtIn="false" value="cimg_use_opencv"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.preprocess.1547623978" name="Preprocess only (-E)" superClass="gnu.cpp.compiler.option.preprocessor.preprocess" useByScannerDiscovery="false" value="false" valueType="boolean"/>
@@ -54,6 +55,10 @@
 									<listOptionValue builtIn="false" value=":libjpeg.so.8"/>
 									<listOptionValue builtIn="false" value="opencv_core"/>
 									<listOptionValue builtIn="false" value="opencv_highgui"/>
+									<listOptionValue builtIn="false" value="png"/>
+									<listOptionValue builtIn="false" value="z"/>
+									<listOptionValue builtIn="false" value="lept"/>
+									<listOptionValue builtIn="false" value="tesseract"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.305714552" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.2000219060" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
