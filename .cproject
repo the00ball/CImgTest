@@ -28,12 +28,13 @@
 									<listOptionValue builtIn="false" value="/usr/include/opencv"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.1169543390" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.other.other.1497922687" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -std=c++11" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.1497922687" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -std=c++11 -fopenmp" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.576026059" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="cimg_display=1"/>
 									<listOptionValue builtIn="false" value="cimg_use_jpeg"/>
 									<listOptionValue builtIn="false" value="cimg_use_png"/>
 									<listOptionValue builtIn="false" value="cimg_use_opencv"/>
+									<listOptionValue builtIn="false" value="cimg_use_openmp"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.preprocess.1547623978" name="Preprocess only (-E)" superClass="gnu.cpp.compiler.option.preprocessor.preprocess" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.378857390" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -59,6 +60,7 @@
 									<listOptionValue builtIn="false" value="z"/>
 									<listOptionValue builtIn="false" value="lept"/>
 									<listOptionValue builtIn="false" value="tesseract"/>
+									<listOptionValue builtIn="false" value="gomp"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.305714552" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.2000219060" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
@@ -105,9 +107,11 @@
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1762624241" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="cimg_display=1"/>
 									<listOptionValue builtIn="false" value="cimg_use_jpeg"/>
+									<listOptionValue builtIn="false" value="cimg_use_png"/>
 									<listOptionValue builtIn="false" value="cimg_use_opencv"/>
+									<listOptionValue builtIn="false" value="cimg_use_openmp"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.other.other.1091191456" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -std=c++11" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.1091191456" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -std=c++11 -fopenmp" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.optimization.flags.361027043" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" useByScannerDiscovery="false" value="" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.189262003" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -126,7 +130,13 @@
 									<listOptionValue builtIn="false" value=":libjpeg.so.8"/>
 									<listOptionValue builtIn="false" value="opencv_core"/>
 									<listOptionValue builtIn="false" value="opencv_highgui"/>
+									<listOptionValue builtIn="false" value="png"/>
+									<listOptionValue builtIn="false" value="z"/>
+									<listOptionValue builtIn="false" value="lept"/>
+									<listOptionValue builtIn="false" value="tesseract"/>
+									<listOptionValue builtIn="false" value="gomp"/>
 								</option>
+								<option id="gnu.cpp.link.option.paths.384553224" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.69143132" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

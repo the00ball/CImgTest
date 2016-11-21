@@ -1,5 +1,6 @@
 #include <CImg.h>
-#include <list>
+#include <omp.h>
+#include <vector>
 #include "lib/krabs.h"
 
 using namespace std;
@@ -9,7 +10,7 @@ void EdgeDetection(const char* filename, const double low_threshold, const doubl
 {
 	CImg<double> image;
 
-	if (strlen(filename))
+	if (strcmp(filename,"cam.png"))
 	{
 		// load from file
 		CImg<double> input(filename);
@@ -60,6 +61,10 @@ void FindButton(const char* filename, const double low_threshold, const double h
 	image.display();
 }
 
+//! Motion Detection
+/**
+ *  Based: http://www.pyimagesearch.com/2015/05/25/basic-motion-detection-and-tracking-with-python-and-opencv/
+ */
 void MotionDetection(const float sigma, const int mim_area, const double high_threshold, const int dilate, const bool show_threshold)
 {
 	const double kGreen[] = {0,255,0};
@@ -71,14 +76,14 @@ void MotionDetection(const float sigma, const int mim_area, const double high_th
 	vector<KrabsRegion> region_list;
 	CImgDisplay display(image, "Motion Detection");
 
-	first_frame.load_camera(0,1,false,640,480).norm().normalize(0,255).blur(sigma,true,true).abs();
+	first_frame.load_camera(0,1,false,640,480).norm().normalize(0,255).blur(sigma,true,true);
 	display.display(image);
 
 	while(!display.is_closed())
 	{
 		image.load_camera(0,0,false,640,480);
-		CImg<double> gray = image.get_norm().normalize(0,255).blur(sigma,true,true).abs();
-		CImg<double> threshold = (first_frame - gray).threshold(high_threshold, false, true).dilate(dilate);
+		CImg<double> gray = image.get_norm().normalize(0,255).blur(sigma,true,true);
+		CImg<double> threshold = (first_frame - gray).abs().threshold(high_threshold).dilate(dilate);
 
 		if (show_threshold)
 			display = threshold;
@@ -94,7 +99,7 @@ void MotionDetection(const float sigma, const int mim_area, const double high_th
 				image.draw_line(region.x0, region.y0, region.x1, region.y0, kGreen, 1);
 				image.draw_line(region.x1, region.y0, region.x1, region.y1, kGreen, 1);
 				image.draw_line(region.x0, region.y1, region.x1, region.y1, kGreen, 1);
-				image.draw_text(region.x0, region.y0, "Motion detected", kRed);
+				image.draw_text((region.x0+region.x1)/2, (region.y0+region.y1)/2, "X", kRed);
 			}
 			display = image;
 		}
