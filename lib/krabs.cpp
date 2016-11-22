@@ -1,5 +1,23 @@
 #include "krabs.h"
 
+#define INBOUND_NW(x,y)     ((x) > 0 && (y) > 0)
+#define INBOUND_NO(y)       ((y) > 0)
+#define INBOUND_NE(img,x,y) ((x) < (img).width()-1 && (y) > 0)
+#define INBOUND_EA(img,x)   ((x) < (img).width()-1)
+#define INBOUND_SE(img,x,y) ((x) < (img).width()-1 && (y) < (img).height()-1)
+#define INBOUND_SO(img,y)   ((y) < (img).height()-1)
+#define INBOUND_SW(img,x,y) ((x) > 0 && (y) < (img).height()-1)
+#define INBOUND_WE(x)       ((x) > 0)
+
+#define NW(img,x,y) (img)((x)-1,(y)-1)
+#define NO(img,x,y) (img)((x),(y)-1)
+#define NE(img,x,y) (img)((x)+1,(y)-1)
+#define EA(img,x,y) (img)((x)+1,(y))
+#define SE(img,x,y) (img)((x)+1,(y)+1)
+#define SO(img,x,y) (img)((x),(y)+1)
+#define SW(img,x,y) (img)((x)-1,(y)+1)
+#define WE(img,x,y) (img)((x)-1,(y))
+
 CImg<double> KrabsSobel(const CImg<double>& gray)
 {
 	CImg<double> gradient_x = gray.get_convolve(kSobelKernelX).sqr().normalize(0, 255);
@@ -107,18 +125,18 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 
 	// (2) Find the intensity gradients of the image
 
-	CImg<double> gradient_x = gaussian.get_convolve(kSobelKernelX);
-	CImg<double> gradient_y = gaussian.get_convolve(kSobelKernelY);
-	CImg<double> gradient   = (gradient_x.get_sqr().normalize(0,255)+gradient_y.get_sqr().normalize(0,255) ).cut(0,255).sqrt().normalize(0,255);
-	CImg<double> arc_tan2   = gradient_y.get_atan2(gradient_x);
+	CImg<double> grad_x = gaussian.get_convolve(kSobelKernelX);
+	CImg<double> grad_y = gaussian.get_convolve(kSobelKernelY);
+	CImg<double> grad   = (grad_x.get_sqr().normalize(0,255)+grad_y.get_sqr().normalize(0,255) ).cut(0,255).sqrt().normalize(0,255);
+	CImg<double> arc_tan2 = grad_y.get_atan2(grad_x);
 
 	// (3) Apply non-maximum suppression to get rid of spurious response to edge detection
 
 	const double kSector = 22.5;
 	const double kAngles[4] = {0, 45, 90, 135};
 
-	CImg_3x3(I,double);
-	cimg_for3x3(gradient,x,y,0,0,I,double)
+	#pragma omp parallel for shared(grad,arc_tan2) schedule(dynamic,100)
+	cimg_forXY(grad,x,y)
 	{
 		const double kArcTan2 = ToDegrees(arc_tan2(x,y));
 
@@ -134,14 +152,34 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 				(kArcTan2 > kLowLimit1 && kArcTan2 <= kHighLimit1) ||
 				(kArcTan2 > kLowLimit2 && kArcTan2 <= kHighLimit2))
 			{
-				const double kGradientValue = gradient(x,y);
+				const double kGradientValue = grad(x,y);
 
 				switch(static_cast<int>(kAngles[i]))
 				{
-					case   0: gradient(x,y) = (kGradientValue < Ipc || kGradientValue < Inc) ? kSupress : kGradientValue; break;
-					case  45: gradient(x,y) = (kGradientValue < Inp || kGradientValue < Ipn) ? kSupress : kGradientValue; break;
-					case  90: gradient(x,y) = (kGradientValue < Icp || kGradientValue < Icn) ? kSupress : kGradientValue; break;
-					case 135: gradient(x,y) = (kGradientValue < Ipp || kGradientValue < Inn) ? kSupress : kGradientValue; break;
+					case 0:
+						{
+							if ((INBOUND_WE(x) && kGradientValue < WE(grad,x,y)) ||
+								(INBOUND_EA(grad,x) && kGradientValue < EA(grad,x,y)))
+								grad(x,y) = kSupress;
+						}break;
+					case 45:
+						{
+							if ((INBOUND_NE(grad,x,y) && kGradientValue < NE(grad,x,y)) ||
+								(INBOUND_SW(grad,x,y) && kGradientValue < SW(grad,x,y)))
+								grad(x,y) = kSupress;
+						}break;
+					case 90:
+						{
+							if ((INBOUND_NO(y) && kGradientValue < NO(grad,x,y)) ||
+								(INBOUND_SO(grad,y) &&  kGradientValue < SO(grad,x,y)))
+								grad(x,y) = kSupress;
+						}break;
+					case 135:
+						{
+							if ((INBOUND_NW(x,y) && kGradientValue < NW(grad,x,y)) ||
+								(INBOUND_SE(grad,x,y) && kGradientValue < SE(grad,x,y)))
+								grad(x,y) = kSupress;
+						}break;
 				}
 
 				break;
@@ -152,7 +190,7 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 	// (4) Apply double threshold to determine potential edges
 	// (5) Track edge by hysteresis: Finalize the detection of edges by suppressing all the other edges that are weak and not connected to strong edges.
 
-	return Hysteresis(gradient, high_threshold, low_threshold);
+	return Hysteresis(grad, high_threshold, low_threshold);
 }
 
 inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned char> &labeled, KrabsRegion &region, const int x, const int y, const unsigned char current_label)
