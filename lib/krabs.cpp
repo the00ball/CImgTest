@@ -1,13 +1,22 @@
 #include "krabs.h"
 
-#define INBOUND_NW(x,y)     ((x) > 0 && (y) > 0)
-#define INBOUND_NO(y)       ((y) > 0)
-#define INBOUND_NE(img,x,y) ((x) < (img).width()-1 && (y) > 0)
-#define INBOUND_EA(img,x)   ((x) < (img).width()-1)
-#define INBOUND_SE(img,x,y) ((x) < (img).width()-1 && (y) < (img).height()-1)
-#define INBOUND_SO(img,y)   ((y) < (img).height()-1)
-#define INBOUND_SW(img,x,y) ((x) > 0 && (y) < (img).height()-1)
-#define INBOUND_WE(x)       ((x) > 0)
+#define NW_INBOUND(x,y)     ((x) > 0 && (y) > 0)
+#define NO_INBOUND(y)       ((y) > 0)
+#define NE_INBOUND(img,x,y) ((x) < (img).width()-1 && (y) > 0)
+#define EA_INBOUND(img,x)   ((x) < (img).width()-1)
+#define SE_INBOUND(img,x,y) ((x) < (img).width()-1 && (y) < (img).height()-1)
+#define SO_INBOUND(img,y)   ((y) < (img).height()-1)
+#define SW_INBOUND(img,x,y) ((x) > 0 && (y) < (img).height()-1)
+#define WE_INBOUND(x)       ((x) > 0)
+
+#define NW_COORD(x,y) (x)-1,(y)-1
+#define NO_COORD(x,y) (x),(y)-1
+#define NE_COORD(x,y) (x)+1,(y)-1
+#define EA_COORD(x,y) (x)+1,(y)
+#define SE_COORD(x,y) (x)+1,(y)+1
+#define SO_COORD(x,y) (x),(y)+1
+#define SW_COORD(x,y) (x)-1,(y)+1
+#define WE_COORD(x,y) (x)-1,(y)
 
 #define NW(img,x,y) (img)((x)-1,(y)-1)
 #define NO(img,x,y) (img)((x),(y)-1)
@@ -68,52 +77,52 @@ inline void CheckNeighborhood(vector<pair<int, int>> &neighborhood, const CImg<d
 {
 	// check 8-connected pixels
 
-	if (x > 0 && y > 0 && !edge_trace(x-1,y-1) && gradient(x-1,y-1) >= threshold)
+	if (NW_INBOUND(x,y) && !NW(edge_trace,x,y) && NW(gradient,x,y) >= threshold)
 	{
-		edge_trace(x-1,y-1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x-1,y-1));
+		NW(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(NW_COORD(x,y)));
 	}
 
-	if (y > 0 && !edge_trace(x,y-1) && gradient(x,y-1) >= threshold)
+	if (NO_INBOUND(y) && !NO(edge_trace,x,y) && NO(gradient,x,y) >= threshold)
 	{
-		edge_trace(x,y-1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x,y-1));
+		NO(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(NO_COORD(x,y)));
 	}
 
-	if (x < gradient.width()-1 && y > 0 && !edge_trace(x+1,y-1) && gradient(x+1,y-1) >= threshold)
+	if (NE_INBOUND(gradient,x,y) && !NE(edge_trace,x,y) && NE(gradient,x,y) >= threshold)
 	{
-		edge_trace(x+1,y-1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x+1,y-1));
+		NE(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(NE_COORD(x,y)));
 	}
 
-	if (x < gradient.width()-1 && !edge_trace(x+1,y) && gradient(x+1,y) >= threshold)
+	if (EA_INBOUND(gradient,x) && !EA(edge_trace,x,y) && EA(gradient,x,y) >= threshold)
 	{
-		edge_trace(x+1,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(x+1,y));
+		EA(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(EA_COORD(x,y)));
 	}
 
-	if (x < gradient.width()-1 && y < gradient.height()-1 && !edge_trace(x+1,y+1) && gradient(x+1,y+1) >= threshold)
+	if (SE_INBOUND(gradient,x,y) && !SE(edge_trace,x,y) && SE(gradient,x,y) >= threshold)
 	{
-		edge_trace(x+1,y+1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x+1,y+1));
+		SE(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(SE_COORD(x,y)));
 	}
 
-	if (y < gradient.height()-1 && !edge_trace(x,y+1) && gradient(x,y+1) >= threshold)
+	if (SO_INBOUND(gradient, y) && !SO(edge_trace,x,y) && SO(gradient,x,y) >= threshold)
 	{
-		edge_trace(x,y+1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x,y+1));
+		SO(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(SO_COORD(x,y)));
 	}
 
-	if (x > 0 && y < gradient.height()-1 && !edge_trace(x-1,y+1) && gradient(x-1,y+1) >= threshold)
+	if (SW_INBOUND(gradient,x,y) && !SW(edge_trace,x,y) && SW(gradient,x,y) >= threshold)
 	{
-		edge_trace(x-1,y+1) = kEdge;
-		neighborhood.push_back(pair<int,int>(x-1,y+1));
+		SW(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(SW_COORD(x,y)));
 	}
 
-	if (x > 0 && !edge_trace(x-1,y) && gradient(x-1,y) >= threshold)
+	if (WE_INBOUND(x) && !WE(edge_trace,x,y) && WE(gradient,x,y) >= threshold)
 	{
-		edge_trace(x-1,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(x-1,y));
+		WE(edge_trace,x,y) = kEdge;
+		neighborhood.push_back(pair<int,int>(WE_COORD(x,y)));
 	}
 }
 
@@ -158,26 +167,26 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 				{
 					case 0:
 						{
-							if ((INBOUND_WE(x) && kGradientValue < WE(grad,x,y)) ||
-								(INBOUND_EA(grad,x) && kGradientValue < EA(grad,x,y)))
+							if ((WE_INBOUND(x) && kGradientValue < WE(grad,x,y)) ||
+								(EA_INBOUND(grad,x) && kGradientValue < EA(grad,x,y)))
 								grad(x,y) = kSupress;
 						}break;
 					case 45:
 						{
-							if ((INBOUND_NE(grad,x,y) && kGradientValue < NE(grad,x,y)) ||
-								(INBOUND_SW(grad,x,y) && kGradientValue < SW(grad,x,y)))
+							if ((NE_INBOUND(grad,x,y) && kGradientValue < NE(grad,x,y)) ||
+								(SW_INBOUND(grad,x,y) && kGradientValue < SW(grad,x,y)))
 								grad(x,y) = kSupress;
 						}break;
 					case 90:
 						{
-							if ((INBOUND_NO(y) && kGradientValue < NO(grad,x,y)) ||
-								(INBOUND_SO(grad,y) &&  kGradientValue < SO(grad,x,y)))
+							if ((NO_INBOUND(y) && kGradientValue < NO(grad,x,y)) ||
+								(SO_INBOUND(grad,y) &&  kGradientValue < SO(grad,x,y)))
 								grad(x,y) = kSupress;
 						}break;
 					case 135:
 						{
-							if ((INBOUND_NW(x,y) && kGradientValue < NW(grad,x,y)) ||
-								(INBOUND_SE(grad,x,y) && kGradientValue < SE(grad,x,y)))
+							if ((NW_INBOUND(x,y) && kGradientValue < NW(grad,x,y)) ||
+								(SE_INBOUND(grad,x,y) && kGradientValue < SE(grad,x,y)))
 								grad(x,y) = kSupress;
 						}break;
 				}
@@ -205,52 +214,52 @@ inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &b
 
 	// check 8-connected pixels
 
-	if (x > 0 && y > 0 && !labeled(x-1,y-1) && binary(x-1,y-1))
+	if (NW_INBOUND(x,y) && !NW(labeled,x,y) && NW(binary,x,y))
 	{
-		labeled(x-1,y-1) = current_label;
-		neighborhood.push_back(pair<int,int>(x-1,y-1));
+		NW(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(NW_COORD(x,y)));
 	}
 
-	if (y > 0 && !labeled(x,y-1) && binary(x,y-1))
+	if (NO_INBOUND(y) && !NO(labeled,x,y) && NO(binary,x,y))
 	{
-		labeled(x,y-1) = current_label;
-		neighborhood.push_back(pair<int,int>(x,y-1));
+		NO(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(NO_COORD(x,y)));
 	}
 
-	if (x < binary.width()-1 && y > 0 && !labeled(x+1,y-1) && binary(x+1,y-1))
+	if (NE_INBOUND(binary,x,y) && !NE(labeled,x,y) && NE(binary,x,y))
 	{
-		labeled(x+1,y-1) = current_label;
-		neighborhood.push_back(pair<int,int>(x+1,y-1));
+		NE(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(NE_COORD(x,y)));
 	}
 
-	if (x < binary.width()-1 && !labeled(x+1,y) && binary(x+1,y))
+	if (EA_INBOUND(binary,x) && !EA(labeled,x,y) && EA(binary,x,y))
 	{
-		labeled(x+1,y) = current_label;
-		neighborhood.push_back(pair<int,int>(x+1,y));
+		EA(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(EA_COORD(x,y)));
 	}
 
-	if (x < binary.width()-1 && y < binary.height()-1 && !labeled(x+1,y+1) && binary(x+1,y+1))
+	if (SE_INBOUND(binary,x,y) && !SE(labeled,x,y) && SE(binary,x,y))
 	{
-		labeled(x+1,y+1) = current_label;
-		neighborhood.push_back(pair<int,int>(x+1,y+1));
+		SE(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(SE_COORD(x,y)));
 	}
 
-	if (y < binary.height()-1 && !labeled(x,y+1) && binary(x,y+1))
+	if (SO_INBOUND(binary, y) && !SO(labeled,x,y) && SO(binary,x,y))
 	{
-		labeled(x,y+1) = current_label;
-		neighborhood.push_back(pair<int,int>(x,y+1));
+		SO(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(SO_COORD(x,y)));
 	}
 
-	if (x > 0 && y < binary.height()-1 && !labeled(x-1,y+1) && binary(x-1,y+1))
+	if (SW_INBOUND(binary,x,y) && !SW(labeled,x,y) && SW(binary,x,y))
 	{
-		labeled(x-1,y+1) = current_label;
-		neighborhood.push_back(pair<int,int>(x-1,y+1));
+		SW(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(SW_COORD(x,y)));
 	}
 
-	if (x > 0 && !labeled(x-1,y) && binary(x-1,y))
+	if (WE_INBOUND(x) && !WE(labeled,x,y) && WE(binary,x,y))
 	{
-		labeled(x-1,y) = current_label;
-		neighborhood.push_back(pair<int,int>(x-1,y));
+		WE(labeled,x,y) = current_label;
+		neighborhood.push_back(pair<int,int>(WE_COORD(x,y)));
 	}
 }
 
