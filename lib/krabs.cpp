@@ -27,6 +27,8 @@
 #define SW(img,x,y) (img)((x)-1,(y)+1)
 #define WE(img,x,y) (img)((x)-1,(y))
 
+const int kParallelChunk = 100;
+
 CImg<double> KrabsSobel(const CImg<double>& gray)
 {
 	CImg<double> gradient_x = gray.get_convolve(kSobelKernelX).sqr().normalize(0, 255);
@@ -53,6 +55,10 @@ CImg<unsigned char> Hysteresis(const CImg<double> &gradient, const double high_t
 	vector<pair<int, int>> neighborhood;
 	CImg<unsigned char> edge_trace = gradient.get_fill(0);
 
+	#pragma omp parallel for \
+	private(neighborhood) \
+	shared(gradient,edge_trace) \
+	schedule(dynamic,kParallelChunk)
 	cimg_forXY(gradient,x,y)
 	{
 		if (!edge_trace(x,y) && gradient(x,y) >= high_threshold)
@@ -77,53 +83,77 @@ inline void CheckNeighborhood(vector<pair<int, int>> &neighborhood, const CImg<d
 {
 	// check 8-connected pixels
 
-	if (NW_INBOUND(x,y) && !NW(edge_trace,x,y) && NW(gradient,x,y) >= threshold)
+	#pragma omp critical (NW)
 	{
-		NW(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(NW_COORD(x,y)));
+		if (NW_INBOUND(x,y) && !NW(edge_trace,x,y) && NW(gradient,x,y) >= threshold)
+		{
+			NW(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(NW_COORD(x,y)));
+		}
 	}
 
-	if (NO_INBOUND(y) && !NO(edge_trace,x,y) && NO(gradient,x,y) >= threshold)
+	#pragma omp critical (NO)
 	{
-		NO(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(NO_COORD(x,y)));
+		if (NO_INBOUND(y) && !NO(edge_trace,x,y) && NO(gradient,x,y) >= threshold)
+		{
+			NO(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(NO_COORD(x,y)));
+		}
 	}
 
-	if (NE_INBOUND(gradient,x,y) && !NE(edge_trace,x,y) && NE(gradient,x,y) >= threshold)
+	#pragma omp critical (NE)
 	{
-		NE(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(NE_COORD(x,y)));
+		if (NE_INBOUND(gradient,x,y) && !NE(edge_trace,x,y) && NE(gradient,x,y) >= threshold)
+		{
+			NE(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(NE_COORD(x,y)));
+		}
 	}
 
-	if (EA_INBOUND(gradient,x) && !EA(edge_trace,x,y) && EA(gradient,x,y) >= threshold)
+	#pragma omp critical (EA)
 	{
-		EA(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(EA_COORD(x,y)));
+		if (EA_INBOUND(gradient,x) && !EA(edge_trace,x,y) && EA(gradient,x,y) >= threshold)
+		{
+			EA(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(EA_COORD(x,y)));
+		}
 	}
 
-	if (SE_INBOUND(gradient,x,y) && !SE(edge_trace,x,y) && SE(gradient,x,y) >= threshold)
+	#pragma omp critical (SE)
 	{
-		SE(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(SE_COORD(x,y)));
+		if (SE_INBOUND(gradient,x,y) && !SE(edge_trace,x,y) && SE(gradient,x,y) >= threshold)
+		{
+			SE(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(SE_COORD(x,y)));
+		}
 	}
 
-	if (SO_INBOUND(gradient, y) && !SO(edge_trace,x,y) && SO(gradient,x,y) >= threshold)
+	#pragma omp critical (SO)
 	{
-		SO(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(SO_COORD(x,y)));
+		if (SO_INBOUND(gradient, y) && !SO(edge_trace,x,y) && SO(gradient,x,y) >= threshold)
+		{
+			SO(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(SO_COORD(x,y)));
+		}
 	}
 
-	if (SW_INBOUND(gradient,x,y) && !SW(edge_trace,x,y) && SW(gradient,x,y) >= threshold)
+	#pragma omp critical (SW)
 	{
-		SW(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(SW_COORD(x,y)));
+		if (SW_INBOUND(gradient,x,y) && !SW(edge_trace,x,y) && SW(gradient,x,y) >= threshold)
+		{
+			SW(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(SW_COORD(x,y)));
+		}
 	}
 
-	if (WE_INBOUND(x) && !WE(edge_trace,x,y) && WE(gradient,x,y) >= threshold)
+	#pragma omp critical (WE)
 	{
-		WE(edge_trace,x,y) = kEdge;
-		neighborhood.push_back(pair<int,int>(WE_COORD(x,y)));
+		if (WE_INBOUND(x) && !WE(edge_trace,x,y) && WE(gradient,x,y) >= threshold)
+		{
+			WE(edge_trace,x,y) = kEdge;
+			neighborhood.push_back(pair<int,int>(WE_COORD(x,y)));
 	}
+}
 }
 
 CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, const double low_threshold, const double high_threshold)
@@ -202,7 +232,7 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 	return Hysteresis(grad, high_threshold, low_threshold);
 }
 
-inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned char> &labeled, KrabsRegion &region, const int x, const int y, const unsigned char current_label)
+inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned int> &labeled, KrabsRegion &region, const int x, const int y, const unsigned int current_label)
 {
 	// adjust label region
 
@@ -263,13 +293,13 @@ inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &b
 	}
 }
 
-CImg<unsigned char> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion> &regions, const int min_area)
+CImg<unsigned int> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion> &regions, const int min_area)
 {
 	const int kMaxArea = binary.width()*binary.height();
 
 	vector<pair<int, int>> neighborhood;
-	CImg<unsigned char> labeled = binary.get_fill(0);
-	unsigned char current_label = 0;
+	CImg<unsigned int> labeled = binary.get_fill(0);
+	unsigned int current_label = 0;
 
 	cimg_forXY(binary,x,y)
 	{
@@ -298,7 +328,7 @@ CImg<unsigned char> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion
 	return labeled;
 }
 
-bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region)
+bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region, const float zoom_factor)
 {
 	bool button_found = false;
 
@@ -318,7 +348,8 @@ bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const ch
 			KrabsRegion region = regions.back();
 			regions.pop_back();
 
-			api->SetRectangle(region.x0, region.y0, region.width(), region.height());
+			api->SetRectangle(region.x0*zoom_factor, region.y0*zoom_factor,
+					region.width()*zoom_factor, region.height()*zoom_factor);
 
 			// Get OCR result
 			string outText(api->GetUTF8Text());

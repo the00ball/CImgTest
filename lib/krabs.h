@@ -70,14 +70,14 @@ inline void CheckNeighborhood(vector<pair<int, int>> &neighborhood, const CImg<d
  */
 CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, const double low_threshold, const double high_threshold);
 
-inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned char> &labeled, KrabsRegion &region, const int x, const int y, const unsigned char current_label);
+inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned int> &labeled, KrabsRegion &region, const int x, const int y, const unsigned int current_label);
 
 //! Labeling using one component at time approach
 /**
  * Source: https://en.wikipedia.org/wiki/Connected-component_labeling#One_component_at_a_time
  */
-CImg<unsigned char> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion> &regions, const int min_area);
+CImg<unsigned int> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion> &regions, const int min_area);
 
-bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region);
+bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region, const float zoom_factor=1.0f);
 
 #endif // CIMGTEST_LIB_KRABS_H_
