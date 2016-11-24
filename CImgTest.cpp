@@ -1,6 +1,7 @@
 #include <CImg.h>
-#include <omp.h>
+#include <iostream>
 #include <vector>
+
 #include "lib/krabs.h"
 
 using namespace std;
@@ -128,9 +129,6 @@ void ShowRegions(const char* filename, const double low_threshold, const double 
 	{
 		image.resize(kResolution[0],kResolution[1]);
 		image.load_camera(0,1,false,kResolution[0],kResolution[1]);
-		FILE* file = cimg::fopen("cam.png", "wb+");
-		image.save_png(file);
-		fclose(file);
 	}
 
 	vector<KrabsRegion> region_list;

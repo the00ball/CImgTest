@@ -2,12 +2,9 @@
 #define CIMGTEST_LIB_KRABS_H_
 
 #include <CImg.h>
+#include <climits>
+#include <utility>
 #include <vector>
-#include <math.h>
-#include <tesseract/baseapi.h>
-#include <leptonica/allheaders.h>
-#include <string>
-#include <limits.h>
 
 using namespace cimg_library;
 using namespace std;

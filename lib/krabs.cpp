@@ -1,5 +1,13 @@
 #include "krabs.h"
 
+#include <leptonica/allheaders.h>
+#include <tesseract/baseapi.h>
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <utility>
+
 #define NW_INBOUND(x,y)     ((x) > 0 && (y) > 0)
 #define NO_INBOUND(y)       ((y) > 0)
 #define NE_INBOUND(img,x,y) ((x) < (img).width()-1 && (y) > 0)
