@@ -6,7 +6,9 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <utility>
+
+using namespace cimg_library;
+using namespace std;
 
 #define NW_INBOUND(x,y)     ((x) > 0 && (y) > 0)
 #define NO_INBOUND(y)       ((y) > 0)
@@ -182,7 +184,7 @@ CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, cons
 	const double kSector = 22.5;
 	const double kAngles[4] = {0, 45, 90, 135};
 
-	#pragma omp parallel for shared(grad,arc_tan2) schedule(dynamic,100)
+	#pragma omp parallel for shared(grad,arc_tan2) schedule(dynamic,kParallelChunk)
 	cimg_forXY(grad,x,y)
 	{
 		const double kArcTan2 = ToDegrees(arc_tan2(x,y));

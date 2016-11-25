@@ -6,15 +6,12 @@
 #include <utility>
 #include <vector>
 
-using namespace cimg_library;
-using namespace std;
-
-const CImg<char> kSobelKernelX(3,3,1,1,{
+const cimg_library::CImg<char> kSobelKernelX(3,3,1,1,{
 		-1,0,1,
 		-2,0,2,
 		-1,0,1},false);
 
-const CImg<char> kSobelKernelY(3,3,1,1,{
+const cimg_library::CImg<char> kSobelKernelY(3,3,1,1,{
 		 1 , 2 , 1,
 		 0 , 0 , 0,
 		-1 ,-2 ,-1},false);
@@ -39,15 +36,15 @@ struct KrabsRegion
 /**
  * Source: https://en.wikipedia.org/wiki/Sobel_operator
  */
-CImg<double> KrabsSobel(const CImg<double>& gray);
+cimg_library::CImg<double> KrabsSobel(const cimg_library::CImg<double>& gray);
 
 inline double ToDegrees(const double radians);
 
 inline double AngleSum(const double angle, const double value);
 
-CImg<unsigned char> Hysteresis(const CImg<double> &gradient, const double high_threshold, const double low_threshold);
+cimg_library::CImg<unsigned char> Hysteresis(const cimg_library::CImg<double> &gradient, const double high_threshold, const double low_threshold);
 
-inline void CheckNeighborhood(vector<pair<int, int>> &neighborhood, const CImg<double> &gradient, CImg<unsigned char> &edge_trace, const int x, const int y, const double threshold);
+inline void CheckNeighborhood(std::vector<std::pair<int, int>> &neighborhood, const cimg_library::CImg<double> &gradient, cimg_library::CImg<unsigned char> &edge_trace, const int x, const int y, const double threshold);
 
 
 //! Canny edge detection
@@ -65,16 +62,16 @@ inline void CheckNeighborhood(vector<pair<int, int>> &neighborhood, const CImg<d
  *
  * Source: https://en.wikipedia.org/wiki/Canny_edge_detector
  */
-CImg<unsigned char> KrabsCanny(const CImg<double>& gray, const float sigma, const double low_threshold, const double high_threshold);
+cimg_library::CImg<unsigned char> KrabsCanny(const cimg_library::CImg<double>& gray, const float sigma, const double low_threshold, const double high_threshold);
 
-inline void Labeling(vector<pair<int, int>> &neighborhood, const CImg<double> &binary, CImg<unsigned int> &labeled, KrabsRegion &region, const int x, const int y, const unsigned int current_label);
+inline void Labeling(std::vector<std::pair<int, int>> &neighborhood, const cimg_library::CImg<double> &binary, cimg_library::CImg<unsigned int> &labeled, KrabsRegion &region, const int x, const int y, const unsigned int current_label);
 
 //! Labeling using one component at time approach
 /**
  * Source: https://en.wikipedia.org/wiki/Connected-component_labeling#One_component_at_a_time
  */
-CImg<unsigned int> KrabsLabeling(const CImg<double> &binary, vector<KrabsRegion> &regions, const int min_area);
+cimg_library::CImg<unsigned int> KrabsLabeling(const cimg_library::CImg<double> &binary, std::vector<KrabsRegion> &regions, const int min_area);
 
-bool KrabsFindButton(const char* filename, vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region, const float zoom_factor=1.0f);
+bool KrabsFindButton(const char* filename, std::vector<KrabsRegion> regions, const char* button_name, KrabsRegion& button_region, const float zoom_factor=1.0f);
 
 #endif // CIMGTEST_LIB_KRABS_H_

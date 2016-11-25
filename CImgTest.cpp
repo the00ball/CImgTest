@@ -45,10 +45,12 @@ void EdgeDetection(const char* filename, const double low_threshold, const doubl
 
 void FindButton(const char* filename, const double low_threshold, const double high_threshold, const float sigma, const char* button_label, const int min_area)
 {
+	const bool kLoadFromFile = strlen(filename) > 0;
+	const char* kCamFileName = "cam.jpg";
 	CImg<double> image;
 	float zoom_factor = 1.0f;
 
-	if (strlen(filename))
+	if (kLoadFromFile)
 	{
 		image = CImg<>(filename);
 		if (image.width() > kMaxImageWidth)
@@ -61,8 +63,8 @@ void FindButton(const char* filename, const double low_threshold, const double h
 	{
 		image.resize(kResolution[0],kResolution[1]);
 		image.load_camera(0,1,false,kResolution[0],kResolution[1]);
-		FILE* file = cimg::fopen("cam.png", "wb+");
-		image.save_png(file);
+		FILE* file = cimg::fopen(kCamFileName, "wb+");
+		image.save_jpeg(file);
 		fclose(file);
 	}
 
@@ -70,7 +72,7 @@ void FindButton(const char* filename, const double low_threshold, const double h
 	KrabsLabeling(KrabsCanny(image.get_norm().normalize(0,255), sigma, low_threshold, high_threshold), region_list, min_area);
 
 	KrabsRegion region;
-	if (KrabsFindButton(filename, region_list, button_label, region, zoom_factor))
+	if (KrabsFindButton((kLoadFromFile?filename:kCamFileName), region_list, button_label, region, zoom_factor))
 		DrawRect(region, image);
 
 	image.display();
