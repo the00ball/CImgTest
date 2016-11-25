@@ -1,7 +1,7 @@
 #ifndef CIMGTEST_LIB_KRABS_H_
 #define CIMGTEST_LIB_KRABS_H_
 
-#include <CImg.h>
+#include "../CImg.h"
 #include <climits>
 #include <utility>
 #include <vector>

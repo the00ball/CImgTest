@@ -1,4 +1,4 @@
-#include <CImg.h>
+#include "CImg.h"
 #include <iostream>
 #include <vector>
 
